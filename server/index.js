@@ -7,6 +7,8 @@ const { applyAllianceChanges } = require("./engine/alliances");
 const { distributeMemory } = require("./engine/memory");
 const { createEvent } = require("./models/event");
 const { VALID_ACTIONS, ACTIONS } = require("./data/actions");
+const { fetchBrightDataEvent, clearBrightDataCache } = require("./data/bright-data");
+const { transformEvent, getRandomFallbackEvent, buildWorldEventContext } = require("./data/event-transformer");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -24,6 +26,7 @@ app.get("/api/state", (req, res) => {
 
 // POST /api/reset — Reset to initial state
 app.post("/api/reset", (req, res) => {
+  clearBrightDataCache();
   const world = resetWorld();
   res.json({ message: "World reset to initial state", world });
 });
@@ -96,6 +99,35 @@ app.post("/api/event", (req, res) => {
     trustChanges,
     world,
   });
+});
+
+// GET /api/world-event — Fetch and transform a real-world event (Bright Data → fallback)
+app.get("/api/world-event", async (req, res) => {
+  const world = getWorld();
+
+  // If we already have a world event cached in state, return it
+  if (world.config.worldEvent) {
+    return res.json({ worldEvent: world.config.worldEvent, source: "cached" });
+  }
+
+  try {
+    // Try Bright Data first
+    const rawText = await fetchBrightDataEvent();
+    if (rawText) {
+      const transformed = transformEvent(rawText);
+      if (transformed) {
+        world.config.worldEvent = transformed;
+        return res.json({ worldEvent: transformed, source: "brightdata" });
+      }
+    }
+  } catch (err) {
+    console.error("[WorldEvent] Bright Data fetch error:", err.message);
+  }
+
+  // Fallback to hardcoded event pool
+  const fallback = getRandomFallbackEvent();
+  world.config.worldEvent = fallback;
+  res.json({ worldEvent: fallback, source: "fallback" });
 });
 
 // Health check

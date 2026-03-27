@@ -4,6 +4,7 @@
     "phase": "peace",
     "eventLog": [],
     "currentEvent": null,
+    "worldEvent": null,
     "maxMemory": 10,
     "trustRange": [-100, 100]
   },

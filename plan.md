@@ -295,7 +295,7 @@ User action → Server processes → AI agents decide sequentially → State upd
 - [x] Phase 1 — Data Models & Initial World State
 - [x] Phase 2 — Backend Engine (Core Logic)
 - [x] Phase 3 — Featherless AI Integration
-- [ ] Phase 4 — Bright Data Integration
+- [x] Phase 4 — Bright Data Integration
 - [ ] Phase 5 — Map UI (React + SVG)
 - [ ] Phase 6 — Connect Frontend + Backend
 - [ ] Phase 7 — Game Loop & Turn System

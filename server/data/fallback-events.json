@@ -1,0 +1,77 @@
+[
+  {
+    "summary": "NATO members increase defense spending amid rising tensions in Eastern Europe",
+    "category": "military",
+    "relevantNations": ["poland", "germany", "france", "uk"]
+  },
+  {
+    "summary": "EU imposes new round of economic sanctions targeting Russian energy exports",
+    "category": "economic",
+    "relevantNations": ["russia", "germany", "france", "italy"]
+  },
+  {
+    "summary": "France and Germany announce joint defense cooperation agreement at bilateral summit",
+    "category": "diplomatic",
+    "relevantNations": ["france", "germany"]
+  },
+  {
+    "summary": "Poland strengthens border security and requests additional NATO troop deployments",
+    "category": "military",
+    "relevantNations": ["poland", "germany"]
+  },
+  {
+    "summary": "Energy crisis deepens as Russian gas supplies to Europe are further reduced",
+    "category": "economic",
+    "relevantNations": ["russia", "germany", "italy"]
+  },
+  {
+    "summary": "UK signs post-Brexit trade agreement with several Eastern European nations",
+    "category": "economic",
+    "relevantNations": ["uk", "poland"]
+  },
+  {
+    "summary": "Italy hosts G7 summit focused on European security and economic stability",
+    "category": "diplomatic",
+    "relevantNations": ["italy", "france", "germany", "uk"]
+  },
+  {
+    "summary": "Diplomatic talks between Russia and Western nations break down over territorial disputes",
+    "category": "crisis",
+    "relevantNations": ["russia", "france", "germany", "uk"]
+  },
+  {
+    "summary": "Poland and Ukraine sign mutual defense and economic cooperation treaty",
+    "category": "diplomatic",
+    "relevantNations": ["poland"]
+  },
+  {
+    "summary": "European Central Bank warns of recession risks due to ongoing geopolitical instability",
+    "category": "economic",
+    "relevantNations": ["germany", "france", "italy"]
+  },
+  {
+    "summary": "France deploys naval forces to Mediterranean in response to regional tensions",
+    "category": "military",
+    "relevantNations": ["france", "italy"]
+  },
+  {
+    "summary": "Russia conducts large-scale military exercises near European borders",
+    "category": "military",
+    "relevantNations": ["russia", "poland", "germany"]
+  },
+  {
+    "summary": "Germany announces major shift in foreign policy toward increased military readiness",
+    "category": "military",
+    "relevantNations": ["germany"]
+  },
+  {
+    "summary": "Humanitarian crisis in Eastern Europe triggers emergency EU refugee summit",
+    "category": "crisis",
+    "relevantNations": ["poland", "germany", "france", "italy"]
+  },
+  {
+    "summary": "UK and France agree to joint Channel security operations and intelligence sharing",
+    "category": "diplomatic",
+    "relevantNations": ["uk", "france"]
+  }
+]
