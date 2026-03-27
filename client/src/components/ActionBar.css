@@ -1,0 +1,79 @@
+.action-bar {
+  width: 100%;
+  background: #0d1220;
+  border: 1.5px solid #1a2035;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.action-bar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.action-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #4b5563;
+  font-weight: 600;
+}
+
+.action-source {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #f59e0b;
+  min-width: 80px;
+}
+
+.no-selection {
+  color: #374151;
+  font-style: italic;
+  font-size: 0.8rem;
+}
+
+.action-select {
+  background: #111827;
+  border: 1px solid #1f2937;
+  border-radius: 6px;
+  color: #e5e7eb;
+  padding: 4px 8px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  outline: none;
+}
+
+.action-select:focus {
+  border-color: #374151;
+}
+
+.action-select:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.action-btn {
+  padding: 5px 14px;
+  border-radius: 6px;
+  border: 1.5px solid var(--btn-color);
+  background: transparent;
+  color: var(--btn-color);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.action-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--btn-color) 15%, transparent);
+}
+
+.action-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}

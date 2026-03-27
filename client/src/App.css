@@ -19,38 +19,118 @@ body {
 
 .app-header {
   text-align: center;
-  padding: 1.5rem;
+  padding: 1rem 1.5rem;
   border-bottom: 1px solid #1a2035;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
 }
 
 .app-header h1 {
-  font-size: 1.8rem;
+  font-size: 1.6rem;
   color: #ffffff;
   letter-spacing: 0.05em;
 }
 
 .subtitle {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #6b7280;
-  margin-top: 0.25rem;
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.turn-badge {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #60a5fa;
+  background: #0d1a2e;
+  border: 1px solid #1a2e4a;
+  border-radius: 6px;
+  padding: 3px 10px;
+}
+
+.reset-btn {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+  background: transparent;
+  border: 1px solid #374151;
+  border-radius: 6px;
+  padding: 3px 10px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.reset-btn:hover:not(:disabled) {
+  color: #f87171;
+  border-color: #f87171;
+}
+
+.reset-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.error-banner {
+  background: #2d1515;
+  border-bottom: 1px solid #7f1d1d;
+  color: #fca5a5;
+  font-size: 0.82rem;
+  padding: 0.5rem 1.5rem;
+  text-align: center;
+}
+
+.error-banner button {
+  background: none;
+  border: none;
+  color: #f87171;
+  cursor: pointer;
+  text-decoration: underline;
+  font-size: inherit;
 }
 
 .app-main {
   flex: 1;
   display: flex;
+  flex-direction: row;
   justify-content: center;
-  align-items: center;
-  padding: 2rem;
+  align-items: flex-start;
+  padding: 1.25rem 1.5rem;
+  gap: 1.25rem;
+}
+
+.map-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 0 0 800px;
 }
 
 .map-container {
-  width: 900px;
-  height: 600px;
+  position: relative;
+  width: 800px;
+  height: 560px;
   border: 2px solid #1a2035;
   border-radius: 12px;
+  overflow: hidden;
+  background: #0d1220;
+}
+
+.loading-overlay {
+  position: absolute;
+  inset: 0;
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
+  color: #4b5563;
+  font-size: 0.9rem;
+  z-index: 10;
   background: #0d1220;
 }
 
@@ -59,13 +139,4 @@ body {
   font-size: 1.2rem;
 }
 
-.selection-hint {
-  text-align: center;
-  margin-top: 0.75rem;
-  color: #9ca3af;
-  font-size: 0.9rem;
-}
 
-.selection-hint strong {
-  color: #60a5fa;
-}

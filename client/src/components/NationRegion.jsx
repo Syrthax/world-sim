@@ -1,18 +1,29 @@
+const RELATIONSHIP_COLORS = {
+  self:    { fill: '#f59e0b', stroke: '#fcd34d' }, // gold — selected nation
+  allied:  { fill: '#1d4ed8', stroke: '#93c5fd' }, // blue — allied
+  hostile: { fill: '#991b1b', stroke: '#fca5a5' }, // red — hostile
+  neutral: { fill: '#1e2d45', stroke: '#4b6a8a' }, // dark blue-gray — neutral
+}
+
 /**
  * NationRegion — A single clickable SVG nation polygon + label.
  */
-function NationRegion({ nation, isSelected, onClick }) {
+function NationRegion({ nation, isSelected, relationship = 'neutral', onClick }) {
+  const colors = isSelected
+    ? RELATIONSHIP_COLORS.self
+    : RELATIONSHIP_COLORS[relationship] ?? RELATIONSHIP_COLORS.neutral
+
   return (
     <g
-      className={`nation-region ${isSelected ? 'selected' : ''}`}
+      className={`nation-region ${isSelected ? 'selected' : relationship}`}
       onClick={() => onClick(nation.id)}
       style={{ cursor: 'pointer' }}
     >
       <polygon
         points={nation.points}
-        fill={isSelected ? '#3b82f6' : '#1e2d45'}
-        stroke="#4b6a8a"
-        strokeWidth="2"
+        fill={colors.fill}
+        stroke={colors.stroke}
+        strokeWidth={isSelected ? 2.5 : 1.5}
         strokeLinejoin="round"
       />
       <text

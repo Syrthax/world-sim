@@ -12,16 +12,12 @@
 }
 
 .nation-region polygon {
-  transition: fill 0.15s ease, stroke 0.15s ease;
+  transition: fill 0.2s ease, stroke 0.2s ease;
 }
 
-.nation-region:hover polygon {
-  fill: #2a4a7a;
-  stroke: #6b9fd4;
-}
-
-.nation-region.selected polygon {
-  fill: #2563eb;
-  stroke: #93c5fd;
-  stroke-width: 2.5;
-}
+/* Hover brightens the current fill slightly */
+.nation-region.neutral:hover polygon  { fill: #2a4a7a; stroke: #6b9fd4; }
+.nation-region.allied:hover polygon   { fill: #2563eb; stroke: #bfdbfe; }
+.nation-region.hostile:hover polygon  { fill: #b91c1c; stroke: #fca5a5; }
+.nation-region.self:hover polygon,
+.nation-region.selected:hover polygon { fill: #fbbf24; stroke: #fde68a; }

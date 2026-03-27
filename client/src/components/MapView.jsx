@@ -1,63 +1,37 @@
-import { useState } from 'react'
 import NationRegion from './NationRegion'
+import EventArrows from './EventArrows'
+import { NATIONS, DUMMY_WORLD, DUMMY_EVENTS, NATION_CENTERS } from '../data/worldData'
 import './MapView.css'
 
 /**
- * Simplified Europe map — 6 nations as polygon regions.
- * ViewBox: 800 x 550. Nations are positioned roughly geographically.
+ * Derive the visual relationship of nationId relative to perspectiveId.
+ * Uses live worldState.nationMap if available, falls back to DUMMY_WORLD.
+ * Returns: 'self' | 'allied' | 'hostile' | 'neutral'
  */
-const NATIONS = [
-  {
-    id: 'uk',
-    label: 'UK',
-    labelX: 162,
-    labelY: 138,
-    // Island shape, northwest
-    points: '128,92 168,76 198,88 202,138 186,172 158,182 128,168 118,138',
-  },
-  {
-    id: 'france',
-    label: 'France',
-    labelX: 215,
-    labelY: 268,
-    // Roughly hexagonal, west-center
-    points: '155,202 218,188 272,206 288,252 268,318 228,348 182,342 152,296 146,248',
-  },
-  {
-    id: 'germany',
-    label: 'Germany',
-    labelX: 325,
-    labelY: 222,
-    // Roughly rectangular, center
-    points: '278,152 342,145 368,168 374,228 356,275 306,282 274,252 266,192',
-  },
-  {
-    id: 'poland',
-    label: 'Poland',
-    labelX: 422,
-    labelY: 228,
-    // East of Germany
-    points: '378,162 442,155 464,176 468,238 456,288 402,294 372,262 370,198',
-  },
-  {
-    id: 'italy',
-    label: 'Italy',
-    labelX: 312,
-    labelY: 418,
-    // Boot-shaped peninsula
-    points: '278,332 322,322 352,348 356,402 340,452 315,492 288,472 272,428 274,368',
-  },
-  {
-    id: 'russia',
-    label: 'Russia',
-    labelX: 635,
-    labelY: 238,
-    // Large eastern region
-    points: '472,102 685,92 802,142 802,392 645,412 492,388 462,292 458,188',
-  },
-]
+function getRelationship(perspectiveId, nationId, worldState) {
+  if (!perspectiveId || perspectiveId === nationId) return 'self'
+  const map = worldState?.nationMap
+  const perspective = map ? map[perspectiveId] : DUMMY_WORLD[perspectiveId]
+  if (!perspective) return 'neutral'
+  if (perspective.alliances.includes(nationId)) return 'allied'
+  const trust = perspective.trust[nationId] ?? 0
+  if (trust <= -15) return 'hostile'
+  return 'neutral'
+}
 
-function MapView({ selectedNation, onNationClick }) {
+function MapView({ selectedNation, onNationClick, worldState, events }) {
+  // Derive event arrows: use live eventLog (last 5) or fall back to dummy
+  const liveLog = worldState?.config?.eventLog
+  const arrowEvents = liveLog && liveLog.length > 0
+    ? liveLog.slice(-5).map((e, i) => ({
+        id: e.turn ?? i,
+        type: e.type,
+        attacker: e.source,
+        target: e.target,
+        label: e.description?.substring(0, 30) ?? e.type,
+        time: `T${e.turn ?? i}`,
+      })).filter(e => e.attacker && e.target && NATION_CENTERS[e.attacker] && NATION_CENTERS[e.target])
+    : (events ?? DUMMY_EVENTS)
   return (
     <div className="map-view">
       <svg
@@ -78,15 +52,35 @@ function MapView({ selectedNation, onNationClick }) {
           ))}
         </g>
 
-        {/* Nation regions */}
+        {/* Nation regions — color coded by relationship to selected nation */}
         {NATIONS.map(nation => (
           <NationRegion
             key={nation.id}
             nation={nation}
             isSelected={selectedNation === nation.id}
+            relationship={getRelationship(selectedNation, nation.id, worldState)}
             onClick={onNationClick}
           />
         ))}
+
+        {/* Event arrows — rendered above nations */}
+        <EventArrows events={arrowEvents} />
+
+        {/* Legend */}
+        <g transform="translate(14, 460)">
+          <rect width="150" height="84" fill="#0a1628" fillOpacity="0.85" rx="6" />
+          {[
+            { color: '#f59e0b', label: 'Selected' },
+            { color: '#1d4ed8', label: 'Allied' },
+            { color: '#991b1b', label: 'Hostile' },
+            { color: '#1e2d45', label: 'Neutral' },
+          ].map(({ color, label }, i) => (
+            <g key={label} transform={`translate(12, ${14 + i * 18})`}>
+              <rect width="12" height="12" fill={color} rx="2" />
+              <text x="20" y="10" fill="#9ca3af" fontSize="11" fontFamily="sans-serif">{label}</text>
+            </g>
+          ))}
+        </g>
       </svg>
     </div>
   )

@@ -1,0 +1,157 @@
+.nation-panel {
+  width: 300px;
+  flex-shrink: 0;
+  background: #0d1220;
+  border: 1.5px solid #1a2035;
+  border-radius: 12px;
+  padding: 1.25rem 1rem;
+  overflow-y: auto;
+  max-height: 580px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* ── Header ────────────────────────────── */
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+
+.panel-nation-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ffffff;
+  text-transform: capitalize;
+}
+
+.personality-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  border: 1px solid;
+  border-radius: 4px;
+  padding: 2px 8px;
+}
+
+/* ── Section ────────────────────────────── */
+.panel-section {
+  margin-bottom: 1.25rem;
+}
+
+.section-title {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #4b5563;
+  margin-bottom: 0.6rem;
+  font-weight: 600;
+}
+
+/* ── Alliances ────────────────────────────── */
+.alliance-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.alliance-badge {
+  background: #1d3a6e;
+  color: #93c5fd;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 12px;
+}
+
+/* ── Trust bars ────────────────────────────── */
+.trust-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.trust-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.trust-label {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  width: 60px;
+  flex-shrink: 0;
+}
+
+.trust-bar-bg {
+  flex: 1;
+  height: 6px;
+  background: #1a2035;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.trust-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.trust-score {
+  font-size: 0.72rem;
+  font-weight: 600;
+  width: 30px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ── Events ────────────────────────────── */
+.event-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.event-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 0.78rem;
+}
+
+.event-time {
+  color: #374151;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  padding-top: 1px;
+}
+
+.event-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.event-text {
+  color: #d1d5db;
+  line-height: 1.4;
+}
+
+.event-other {
+  color: #6b7280;
+}
+
+/* ── Generic ────────────────────────────── */
+.no-data {
+  color: #374151;
+  font-size: 0.78rem;
+  font-style: italic;
+}

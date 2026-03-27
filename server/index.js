@@ -9,6 +9,7 @@ const { createEvent } = require("./models/event");
 const { VALID_ACTIONS, ACTIONS } = require("./data/actions");
 const { fetchBrightDataEvent, clearBrightDataCache } = require("./data/bright-data");
 const { transformEvent, getRandomFallbackEvent, buildWorldEventContext } = require("./data/event-transformer");
+const { processTurn } = require("./engine/turn");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -31,8 +32,8 @@ app.post("/api/reset", (req, res) => {
   res.json({ message: "World reset to initial state", world });
 });
 
-// POST /api/event — Trigger an event
-app.post("/api/event", (req, res) => {
+// POST /api/event — Trigger an event (async for AI agent reactions)
+app.post("/api/event", async (req, res) => {
   const { type, source, target, description } = req.body || {};
 
   // Validate required fields
@@ -89,14 +90,27 @@ app.post("/api/event", (req, res) => {
     distributeMemory(world, turn, source, target, type, eventDescription);
   }
 
-  // Advance turn and update event log
-  world.config.turn += 1;
+  // Log the triggering event
   world.config.eventLog.push(event);
   world.config.currentEvent = event;
+
+  // --- Phase 7: Run AI agent reactions ---
+  let turnSummary = null;
+  try {
+    const result = await processTurn(event, world);
+    turnSummary = result.turnSummary;
+  } catch (err) {
+    console.error("[Turn] Agent reaction loop failed:", err.message);
+    // Non-fatal — user action already applied, just no AI reactions
+  }
+
+  // Advance turn AFTER reactions have been applied
+  world.config.turn += 1;
 
   res.json({
     event,
     trustChanges,
+    turnSummary,
     world,
   });
 });
