@@ -1,19 +1,19 @@
-const { fallbackDecision } = require("../ai/fallback");
-const { callFeatherless } = require("../ai/featherless");
-const { buildPrompt, SYSTEM_PROMPT } = require("../ai/prompt-builder");
-const { parseDecision } = require("../ai/decision-parser");
+const { getNationDecision } = require("../ai/index");
 const { updateTrust } = require("./trust");
 const { applyAllianceChanges } = require("./alliances");
 const { appendMemory, buildMemoryEntry } = require("./memory");
 const { createEvent } = require("../models/event");
 const { ACTIONS } = require("../data/actions");
 
-// Max nations that get an AI reasoning call (to keep latency low)
-const MAX_AI_CALLS = 2;
+// Max nations that get AI calls per reaction cycle (0 = unlimited)
+const MAX_AI_CALLS = 5;
+
+// Per-nation timeout guard: if AI takes longer than this, force fallback
+const PER_NATION_TIMEOUT_MS = 12000;
 
 /**
  * Run agent reactions: every nation except the event source evaluates and responds.
- * Uses rule-based logic for decisions; optionally calls Featherless for reasoning text.
+ * AI is the primary decision maker; fallback kicks in on AI failure.
  *
  * @param {object} event - The triggering event { type, source, target, description, turn }
  * @param {object} world - The mutable world state
@@ -29,39 +29,42 @@ async function runAgentReactions(event, world) {
     if (nation.id === event.source) continue;
 
     try {
-      // --- Step 1: Rule-based decision ---
-      const ruleDecision = fallbackDecision(nation, event, allIds);
+      // --- Step 1: AI-first decision (with timeout guard) ---
+      const worldEvent = world.config.worldEvent || null;
+      const shouldTryAI = MAX_AI_CALLS === 0 || aiCallCount < MAX_AI_CALLS;
 
-      // --- Step 2: Optional AI reasoning (only for non-neutral, up to MAX_AI_CALLS) ---
-      let reasoning = ruleDecision.reasoning;
-      if (ruleDecision.decision !== ACTIONS.NEUTRAL && aiCallCount < MAX_AI_CALLS) {
-        try {
-          const prompt = buildPrompt(nation, event, world.config.worldEvent || null);
-          const aiRaw = await callFeatherless(SYSTEM_PROMPT, prompt);
-          if (aiRaw) {
-            const parsed = parseDecision(aiRaw, allIds);
-            if (parsed && parsed.reasoning) {
-              // Use AI reasoning text but keep the rule-based decision
-              reasoning = parsed.reasoning;
-            }
-          }
-          aiCallCount++;
-        } catch (err) {
-          console.error(`[AgentLoop] AI call failed for ${nation.id}:`, err.message);
-          // Keep rule-based reasoning — no problem
-        }
+      let result;
+      if (shouldTryAI) {
+        result = await Promise.race([
+          getNationDecision(nation, event, allIds, worldEvent),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("AI decision timeout")), PER_NATION_TIMEOUT_MS)
+          ),
+        ]).catch((err) => {
+          console.error(`[AgentLoop] AI timeout for ${nation.id}:`, err.message);
+          // getNationDecision handles its own fallback, but if the whole
+          // promise times out we need a manual fallback import
+          const { fallbackDecision } = require("../ai/fallback");
+          return { ...fallbackDecision(nation, event, allIds), source: "fallback" };
+        });
+        aiCallCount++;
+      } else {
+        // AI cap reached — use fallback directly
+        const { fallbackDecision } = require("../ai/fallback");
+        result = { ...fallbackDecision(nation, event, allIds), source: "fallback" };
       }
 
       const reaction = {
         nation: nation.id,
         nationName: nation.name,
-        decision: ruleDecision.decision,
-        target: ruleDecision.target,
-        reasoning,
+        decision: result.decision,
+        target: result.target,
+        reasoning: result.reasoning,
+        source: result.source || "fallback",
         turn: event.turn,
       };
 
-      // --- Step 3: Apply effects ---
+      // --- Step 2: Apply effects ---
       applyReactionEffects(world, nation, reaction, event.turn);
 
       reactions.push(reaction);
@@ -97,11 +100,12 @@ function applyReactionEffects(world, nation, reaction, turn) {
   appendMemory(nation, memEntry);
 
   // Create an event log entry for this reaction
+  const sourceTag = reaction.source === "ai" ? "[AI]" : "[Rule]";
   const reactionEvent = createEvent({
     type: decision,
     source: nation.id,
     target: target || null,
-    description: `[Reaction] ${summary} — ${reaction.reasoning}`,
+    description: `${sourceTag} ${summary} — ${reaction.reasoning}`,
     turn,
   });
   world.config.eventLog.push(reactionEvent);
