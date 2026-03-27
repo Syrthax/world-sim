@@ -1,0 +1,108 @@
+{
+  "config": {
+    "turn": 0,
+    "phase": "peace",
+    "eventLog": [],
+    "currentEvent": null,
+    "maxMemory": 10,
+    "trustRange": [-100, 100]
+  },
+  "nations": [
+    {
+      "id": "france",
+      "name": "France",
+      "personality": "diplomatic",
+      "alliances": ["germany", "italy"],
+      "trust": {
+        "germany": 60,
+        "uk": 40,
+        "russia": -10,
+        "poland": 30,
+        "italy": 50
+      },
+      "memory": [],
+      "resources": 100,
+      "status": "peace"
+    },
+    {
+      "id": "germany",
+      "name": "Germany",
+      "personality": "diplomatic",
+      "alliances": ["france", "poland"],
+      "trust": {
+        "france": 60,
+        "uk": 50,
+        "russia": -5,
+        "poland": 45,
+        "italy": 35
+      },
+      "memory": [],
+      "resources": 110,
+      "status": "peace"
+    },
+    {
+      "id": "uk",
+      "name": "United Kingdom",
+      "personality": "opportunistic",
+      "alliances": [],
+      "trust": {
+        "france": 40,
+        "germany": 50,
+        "russia": -20,
+        "poland": 25,
+        "italy": 20
+      },
+      "memory": [],
+      "resources": 95,
+      "status": "peace"
+    },
+    {
+      "id": "russia",
+      "name": "Russia",
+      "personality": "aggressive",
+      "alliances": [],
+      "trust": {
+        "france": -10,
+        "germany": -5,
+        "uk": -20,
+        "poland": -30,
+        "italy": 0
+      },
+      "memory": [],
+      "resources": 120,
+      "status": "peace"
+    },
+    {
+      "id": "poland",
+      "name": "Poland",
+      "personality": "defensive",
+      "alliances": ["germany"],
+      "trust": {
+        "france": 30,
+        "germany": 45,
+        "uk": 25,
+        "russia": -30,
+        "italy": 15
+      },
+      "memory": [],
+      "resources": 70,
+      "status": "peace"
+    },
+    {
+      "id": "italy",
+      "name": "Italy",
+      "personality": "opportunistic",
+      "alliances": ["france"],
+      "trust": {
+        "france": 50,
+        "germany": 35,
+        "uk": 20,
+        "russia": 0,
+        "poland": 15
+      },
+      "memory": [],
+      "resources": 85,
+      "status": "peace"
+    }
+  ]
+}
