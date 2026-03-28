@@ -1,6 +1,6 @@
 const { callFeatherless } = require("./featherless");
-const { buildPrompt, SYSTEM_PROMPT } = require("./prompt-builder");
-const { parseDecision } = require("./decision-parser");
+const { buildPrompt, buildAutonomousPrompt, SYSTEM_PROMPT } = require("./prompt-builder");
+const { parseDecision, logCreativeDecision } = require("./decision-parser");
 const { fallbackDecision } = require("./fallback");
 
 /**
@@ -34,6 +34,7 @@ async function getNationDecision(nation, event, allNationIds, worldEvent) {
     if (rawResponse) {
       const parsed = parseDecision(rawResponse, validTargets);
       if (parsed) {
+        logCreativeDecision(nation, parsed.decision, parsed.target);
         return { ...parsed, source: "ai" };
       }
       console.error(`[AI] Failed to parse response for ${nation.id} — using fallback`);
@@ -47,4 +48,41 @@ async function getNationDecision(nation, event, allNationIds, worldEvent) {
   return { ...fb, source: "fallback" };
 }
 
-module.exports = { getNationDecision };
+/**
+ * Get an autonomous (proactive) decision for a nation — no triggering event.
+ * AI decides what action to take based on the current geopolitical situation.
+ * Falls back to null (no action) on failure — caller handles fallback.
+ *
+ * @param {object} nation - The nation making the decision
+ * @param {string[]} allNationIds - All valid nation IDs
+ * @param {object} world - The world state (for context)
+ * @returns {Promise<{ type: string, target: string, reason: string, source: "ai" }|null>}
+ */
+async function getAutonomousDecision(nation, allNationIds, world) {
+  const validTargets = allNationIds.filter((id) => id !== nation.id);
+
+  try {
+    const worldEvent = world.config.worldEvent || null;
+    const userPrompt = buildAutonomousPrompt(nation, world, worldEvent);
+    const rawResponse = await callFeatherless(SYSTEM_PROMPT, userPrompt);
+
+    if (rawResponse) {
+      const parsed = parseDecision(rawResponse, validTargets);
+      if (parsed && parsed.decision && parsed.decision !== "neutral") {
+        logCreativeDecision(nation, parsed.decision, parsed.target);
+        return {
+          type: parsed.decision,
+          target: parsed.target,
+          reason: `[AI] ${parsed.reasoning || `${nation.name} acts strategically.`}`,
+          source: "ai",
+        };
+      }
+    }
+  } catch (err) {
+    console.error(`[AI-Auto] Error for ${nation.id}: ${err.message}`);
+  }
+
+  return null; // Caller falls back to rule-based pickAutonomousAction
+}
+
+module.exports = { getNationDecision, getAutonomousDecision };

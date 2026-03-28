@@ -1,6 +1,29 @@
 const { VALID_ACTIONS } = require("../data/actions");
 
 /**
+ * Log when AI makes a creative/unexpected decision so operators can audit.
+ * This does NOT reject the decision — AI is allowed to be creative.
+ */
+function logCreativeDecision(nation, decision, target) {
+  if (!nation || !nation.personality) return;
+
+  const trustToTarget = target ? (nation.trust?.[target] ?? 0) : 0;
+
+  // Isolationist attacking someone they don't distrust
+  if (nation.personality === "isolationist" && decision === "attack" && trustToTarget >= 0) {
+    console.warn(`[AI-Sanity] ${nation.id} (isolationist, trust ${trustToTarget}) chose ATTACK on ${target} — creative but unexpected`);
+  }
+  // Diplomatic nation choosing betrayal
+  if (nation.personality === "diplomatic" && decision === "betray") {
+    console.warn(`[AI-Sanity] ${nation.id} (diplomatic) chose BETRAY on ${target} — unusual for personality`);
+  }
+  // Aggressive nation choosing to ally with a distrusted nation
+  if (nation.personality === "aggressive" && decision === "ally" && trustToTarget < -10) {
+    console.warn(`[AI-Sanity] ${nation.id} (aggressive, trust ${trustToTarget}) chose ALLY with ${target} — surprising`);
+  }
+}
+
+/**
  * Parse the AI response text into a structured decision object.
  * Handles JSON extraction from potentially noisy AI output.
  *
@@ -39,4 +62,4 @@ function parseDecision(rawText, validTargets) {
   }
 }
 
-module.exports = { parseDecision };
+module.exports = { parseDecision, logCreativeDecision };

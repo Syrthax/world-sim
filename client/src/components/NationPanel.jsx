@@ -54,11 +54,14 @@ function NationPanel({ selectedNation }) {
         <h3 className="section-title">Alliances</h3>
         {nation.alliances.length > 0 ? (
           <div className="alliance-list">
-            {nation.alliances.map(id => (
-              <span key={id} className="alliance-badge">
-                {DUMMY_WORLD[id]?.label ?? id}
-              </span>
-            ))}
+            {nation.alliances.map(a => {
+              const allyId = typeof a === 'string' ? a : a.id;
+              return (
+                <span key={allyId} className="alliance-badge">
+                  {DUMMY_WORLD[allyId]?.label ?? allyId}
+                </span>
+              );
+            })}
           </div>
         ) : (
           <p className="no-data">No active alliances</p>

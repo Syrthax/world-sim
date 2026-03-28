@@ -51,6 +51,21 @@ function App() {
         </div>
       )}
 
+      {/* World Event Banner (Phase 6) */}
+      {worldState?.config?.worldEvent && (
+        <div className="world-event-banner">
+          <span className="world-event-icon">
+            {worldState.config.worldEvent.category === 'military' ? '⚔'
+              : worldState.config.worldEvent.category === 'diplomatic' ? '🤝'
+              : worldState.config.worldEvent.category === 'economic' ? '📊'
+              : '⚠'}
+          </span>
+          <span className="world-event-text">
+            <strong>World Event:</strong> {worldState.config.worldEvent.summary}
+          </span>
+        </div>
+      )}
+
       <main className="app-main">
         <div className="map-column">
           <div className="map-container">

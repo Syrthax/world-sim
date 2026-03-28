@@ -59,6 +59,12 @@ function buildPrompt(nation, event, worldEvent) {
   }
   lines.push("");
 
+  // Intent context (Fix 2)
+  if (nation.intent && nation.intent.type && nation.intent.expiresIn > 0) {
+    lines.push(`Your current strategic intent: ${nation.intent.type} with ${nation.intent.target} (${nation.intent.expiresIn} turns remaining).`);
+    lines.push("");
+  }
+
   // Memory pattern analysis — give the AI behavioral insights
   if (event.source) {
     const sourcePatterns = recallPatterns(nation, event.source);
@@ -102,4 +108,97 @@ function buildPrompt(nation, event, worldEvent) {
   return lines.join("\n");
 }
 
-module.exports = { buildPrompt, SYSTEM_PROMPT };
+/**
+ * Build a prompt for autonomous AI decisions (no triggering event).
+ * The AI decides what proactive action to take based on the current situation.
+ *
+ * @param {object} nation - The nation object
+ * @param {object} world - The full world state
+ * @param {string|null} worldEvent - Optional real-world event context
+ * @returns {string} The formatted prompt
+ */
+function buildAutonomousPrompt(nation, world, worldEvent) {
+  const lines = [];
+
+  // Identity and personality
+  const personalityDesc = PERSONALITY_DESCRIPTIONS[nation.personality] || "balanced decision-making.";
+  lines.push(`You are ${nation.name} (${nation.personality} personality).`);
+  lines.push(`As a ${nation.personality} nation, you value ${personalityDesc}`);
+  lines.push("");
+
+  // Strategic context
+  lines.push("You are deciding your next independent action in the current geopolitical situation.");
+  lines.push(`Current world phase: ${world.config?.phase || "peace"}`);
+  lines.push(`Your resources: ${nation.resources}/120`);
+  lines.push("");
+
+  // Trust scores
+  lines.push("Current trust scores:");
+  for (const [otherId, score] of Object.entries(nation.trust)) {
+    lines.push(`  ${otherId}: ${score}`);
+  }
+  lines.push("");
+
+  // Alliances
+  const allyIds = getAlliedIds(nation);
+  if (allyIds.length > 0) {
+    lines.push(`Your alliances: ${allyIds.join(", ")}`);
+  } else {
+    lines.push("You have no current alliances.");
+  }
+  lines.push("");
+
+  // Intent context (Fix 2 integration)
+  if (nation.intent && nation.intent.type && nation.intent.expiresIn > 0) {
+    lines.push(`Your current strategic intent: ${nation.intent.type} with ${nation.intent.target} (${nation.intent.expiresIn} turns remaining).`);
+    lines.push("Consider following through on this intent if it still makes strategic sense.");
+    lines.push("");
+  }
+
+  // Memory pattern analysis for key relationships
+  const trustEntries = Object.entries(nation.trust)
+    .filter(([id]) => id !== nation.id)
+    .sort((a, b) => a[1] - b[1]);
+  if (trustEntries.length > 0) {
+    const worstEnemy = trustEntries[0];
+    const bestFriend = trustEntries[trustEntries.length - 1];
+    const enemyPatterns = recallPatterns(nation, worstEnemy[0]);
+    const friendPatterns = recallPatterns(nation, bestFriend[0]);
+    if (enemyPatterns.totalInteractions > 0) {
+      lines.push(`Pattern: ${worstEnemy[0]} (trust: ${worstEnemy[1]}) — hostile ${enemyPatterns.hostileCount}x, friendly ${enemyPatterns.friendlyCount}x.`);
+    }
+    if (friendPatterns.totalInteractions > 0) {
+      lines.push(`Pattern: ${bestFriend[0]} (trust: ${bestFriend[1]}) — hostile ${friendPatterns.hostileCount}x, friendly ${friendPatterns.friendlyCount}x.`);
+    }
+    lines.push("");
+  }
+
+  // Recent memory
+  if (nation.memory.length > 0) {
+    lines.push("Recent events you remember:");
+    for (const mem of nation.memory.slice(-5)) {
+      lines.push(`  Turn ${mem.turn}: ${mem.summary}`);
+    }
+    lines.push("");
+  }
+
+  // World event context
+  if (worldEvent) {
+    const eventText = typeof worldEvent === "string" ? worldEvent : worldEvent.summary || JSON.stringify(worldEvent);
+    lines.push(`Real-world context: ${eventText}`);
+    lines.push("");
+  }
+
+  // Resource awareness
+  if (nation.resources < 30) {
+    lines.push("WARNING: Your resources are critically low. Aggressive actions are costly.");
+  }
+  lines.push("");
+
+  lines.push("What action should your nation take? You may choose any valid action toward any other nation, or 'neutral' to wait.");
+  lines.push("Reply with JSON only.");
+
+  return lines.join("\n");
+}
+
+module.exports = { buildPrompt, buildAutonomousPrompt, SYSTEM_PROMPT };

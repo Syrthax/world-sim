@@ -52,12 +52,12 @@ export const NATION_CENTERS = Object.fromEntries(
 )
 
 export const DUMMY_WORLD = {
-  france:  { label: 'France',  personality: 'diplomatic',    alliances: ['germany', 'italy'], trust: { germany: 60, uk: 40, russia: -10, poland: 30, italy: 50 } },
-  germany: { label: 'Germany', personality: 'diplomatic',    alliances: ['france', 'poland'], trust: { france: 60, uk: 50, russia: -5,  poland: 45, italy: 35 } },
+  france:  { label: 'France',  personality: 'diplomatic',    alliances: [{id: 'germany', strength: 2}, {id: 'italy', strength: 2}], trust: { germany: 60, uk: 40, russia: -10, poland: 30, italy: 50 } },
+  germany: { label: 'Germany', personality: 'diplomatic',    alliances: [{id: 'france', strength: 2}, {id: 'poland', strength: 2}], trust: { france: 60, uk: 50, russia: -5,  poland: 45, italy: 35 } },
   uk:      { label: 'UK',      personality: 'opportunistic', alliances: [],                  trust: { france: 40, germany: 50, russia: -20, poland: 25, italy: 20 } },
   russia:  { label: 'Russia',  personality: 'aggressive',    alliances: [],                  trust: { france: -10, germany: -5, uk: -20, poland: -30, italy: 0 } },
-  poland:  { label: 'Poland',  personality: 'defensive',     alliances: ['germany'],         trust: { france: 30, germany: 45, uk: 25, russia: -30, italy: 15 } },
-  italy:   { label: 'Italy',   personality: 'opportunistic', alliances: ['france'],          trust: { france: 50, germany: 35, uk: 20, russia: 0,   poland: 15 } },
+  poland:  { label: 'Poland',  personality: 'defensive',     alliances: [{id: 'germany', strength: 2}],         trust: { france: 30, germany: 45, uk: 25, russia: -30, italy: 15 } },
+  italy:   { label: 'Italy',   personality: 'opportunistic', alliances: [{id: 'france', strength: 2}],          trust: { france: 50, germany: 35, uk: 20, russia: 0,   poland: 15 } },
 }
 
 export const DUMMY_EVENTS = [

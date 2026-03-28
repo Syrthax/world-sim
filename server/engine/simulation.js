@@ -8,12 +8,13 @@ const { processTurn } = require("./turn");
 const { validateWorldState } = require("./state-validator");
 const { applyWorldEventEffects } = require("./world-events");
 const { getRandomFallbackEvent } = require("../data/event-transformer");
+const { getAutonomousDecision } = require("../ai/index");
 
 // --- Configuration ---
 const CYCLE_INTERVAL_MS = 7000; // 1 cycle = 7 seconds
 const ACTION_PROBABILITY = 0.35; // 35% chance a nation acts per cycle
 const MAX_ACTIONS_PER_CYCLE = 2; // Cap autonomous events per cycle
-const MAX_AI_CALLS_PER_CYCLE = 1; // Limit Featherless calls for performance
+const MAX_AI_CALLS_PER_CYCLE = 2; // AI calls for autonomous actions per cycle
 
 // --- Simulation state ---
 let intervalId = null;
@@ -168,15 +169,102 @@ function pickAutonomousAction(nation, allIds, world) {
 
   if (!action) return null;
 
-  // --- Duplicate event prevention: skip if same action+target within 2 cycles ---
-  const last = lastNationAction[nation.id];
-  if (last && last.type === action.type && last.target === action.target && cycleCount - last.cycle <= 2) {
-    return null; // Extended cooldown — don't repeat the same action too soon
+  return action;
+}
+
+// --- Fix 2: Intent system ---
+
+/**
+ * Generate a short-term strategic intent from an action.
+ * Only 1 intent per nation, expires after 3 turns.
+ */
+function generateIntent(nation, actionType, target) {
+  if (!target) return;
+
+  // Map action types to intent categories
+  const friendlyActions = [ACTIONS.ALLY, ACTIONS.SUPPORT, ACTIONS.TRADE];
+  const hostileActions = [ACTIONS.ATTACK, ACTIONS.BETRAY, ACTIONS.SANCTION];
+
+  let intentType = "neutral";
+  if (friendlyActions.includes(actionType)) intentType = "ally";
+  else if (hostileActions.includes(actionType)) intentType = "attack";
+
+  if (intentType === "neutral") return;
+
+  nation.intent = { type: intentType, target, expiresIn: 3 };
+  console.log(`[Intent] ${nation.id} → intent: ${intentType} with ${target} (3 turns)`);
+}
+
+/**
+ * Decrement intent expiry. Remove when expired.
+ */
+function decayIntent(nation) {
+  if (!nation.intent || !nation.intent.expiresIn) return;
+  nation.intent.expiresIn -= 1;
+  if (nation.intent.expiresIn <= 0) {
+    console.log(`[Intent] ${nation.id} intent expired (was: ${nation.intent.type} → ${nation.intent.target})`);
+    nation.intent = null;
+  }
+}
+
+// --- Fix 3: Adaptive personality shift ---
+
+const PERSONALITY_SHIFT_INTERVAL = 8; // Evaluate every 8 turns
+const SHIFT_THRESHOLD = 5; // Need 5+ hostile or cooperative events to trigger shift
+
+// Drift maps: what personality shifts under pressure
+const HOSTILITY_DRIFT = {
+  diplomatic: "defensive",
+  defensive: "aggressive",
+};
+const COOPERATION_DRIFT = {
+  aggressive: "opportunistic",
+  opportunistic: "diplomatic",
+};
+
+/**
+ * Update nation's experience counters based on an action received.
+ */
+function updateExperience(nation, actionType) {
+  if (!nation.experience) {
+    nation.experience = { hostilityReceived: 0, cooperationReceived: 0 };
   }
 
-  // Record this action for cooldown tracking
-  lastNationAction[nation.id] = { type: action.type, target: action.target, cycle: cycleCount };
-  return action;
+  const hostileActions = ["attack", "betray", "sanction"];
+  const friendlyActions = ["ally", "support", "trade"];
+
+  if (hostileActions.includes(actionType)) {
+    nation.experience.hostilityReceived += 1;
+  } else if (friendlyActions.includes(actionType)) {
+    nation.experience.cooperationReceived += 1;
+  }
+}
+
+/**
+ * Evaluate personality drift based on accumulated experience.
+ * Only runs every PERSONALITY_SHIFT_INTERVAL turns. Resets counters after evaluation.
+ */
+function evaluatePersonalityShift(world, turn) {
+  if (turn % PERSONALITY_SHIFT_INTERVAL !== 0 || turn === 0) return;
+
+  for (const nation of world.nations) {
+    if (!nation.experience) continue;
+
+    const { hostilityReceived, cooperationReceived } = nation.experience;
+
+    if (hostilityReceived >= SHIFT_THRESHOLD && HOSTILITY_DRIFT[nation.personality]) {
+      const oldPersonality = nation.personality;
+      nation.personality = HOSTILITY_DRIFT[oldPersonality];
+      console.log(`[PersonalityShift] ${nation.id}: ${oldPersonality} → ${nation.personality} (received ${hostilityReceived} hostile acts)`);
+    } else if (cooperationReceived >= SHIFT_THRESHOLD && COOPERATION_DRIFT[nation.personality]) {
+      const oldPersonality = nation.personality;
+      nation.personality = COOPERATION_DRIFT[oldPersonality];
+      console.log(`[PersonalityShift] ${nation.id}: ${oldPersonality} → ${nation.personality} (received ${cooperationReceived} cooperative acts)`);
+    }
+
+    // Reset counters after evaluation
+    nation.experience = { hostilityReceived: 0, cooperationReceived: 0 };
+  }
 }
 
 // --- Core simulation cycle ---
@@ -202,11 +290,16 @@ async function runCycle() {
     }
     // Apply world event effects every 3 cycles (if not already applied this rotation)
     if (cycleCount % 3 === 0 && world.config.worldEvent && world.config.worldEventAppliedCycle !== cycleCount) {
-      const { changes } = applyWorldEventEffects(world, world.config.worldEvent);
-      world.config.worldEventAppliedCycle = cycleCount;
-      const changeCount = Object.keys(changes).length;
-      if (changeCount > 0) {
-        console.log(`[SimLoop] World event effects applied to ${changeCount} nations`);
+      try {
+        const { changes } = applyWorldEventEffects(world, world.config.worldEvent);
+        world.config.worldEventAppliedCycle = cycleCount;
+        const changeCount = Object.keys(changes).length;
+        if (changeCount > 0) {
+          console.log(`[SimLoop] World event effects applied to ${changeCount} nations`);
+        }
+      } catch (err) {
+        console.error("[SimLoop] World event effects failed (non-fatal):", err.message);
+        // Non-fatal — cycle continues without world event effects
       }
     }
 
@@ -221,12 +314,78 @@ async function runCycle() {
     const allIds = getAllNationIds();
     const shuffled = [...world.nations].sort(() => Math.random() - 0.5);
     let actionsThisCycle = 0;
+    let aiAutoCallsThisCycle = 0;
 
     for (const nation of shuffled) {
       if (actionsThisCycle >= MAX_ACTIONS_PER_CYCLE) break;
 
-      const action = pickAutonomousAction(nation, allIds, world);
+      // --- AI-driven autonomous action (Fix 1) ---
+      // Try AI first for up to MAX_AI_CALLS_PER_CYCLE nations, then fallback
+      let action = null;
+      if (aiAutoCallsThisCycle < MAX_AI_CALLS_PER_CYCLE) {
+        // Check personality probability gate before spending an AI call
+        const personalityBias = {
+          aggressive: 0.50, opportunistic: 0.45, diplomatic: 0.40,
+          defensive: 0.25, isolationist: 0.15,
+        };
+        let prob = personalityBias[nation.personality] ?? ACTION_PROBABILITY;
+        const phase = world.config?.phase;
+        if (phase === "war") {
+          if (nation.personality === "aggressive") prob += 0.20;
+          else if (nation.personality === "opportunistic") prob += 0.10;
+        } else if (phase === "peace") {
+          if (nation.personality === "diplomatic") prob += 0.20;
+          else if (nation.personality === "defensive") prob += 0.10;
+        }
+        if (Math.random() <= Math.min(prob, 0.85)) {
+          try {
+            const aiAction = await Promise.race([
+              getAutonomousDecision(nation, allIds, world),
+              new Promise((_, reject) =>
+                setTimeout(() => reject(new Error("AI auto timeout")), 12000)
+              ),
+            ]).catch(() => null);
+            aiAutoCallsThisCycle++;
+
+            if (aiAction && aiAction.type && aiAction.target) {
+              // Validate AI action against resource gates
+              if (nation.resources < 15) {
+                // Override: forced trade
+                action = { type: ACTIONS.TRADE, target: aiAction.target,
+                  reason: `[AI] ${nation.name} is forced into trade by economic desperation.`, source: "ai" };
+              } else if (nation.resources < 30 && (aiAction.type === ACTIONS.ATTACK || aiAction.type === ACTIONS.BETRAY)) {
+                action = null; // Can't afford war, skip
+              } else {
+                action = aiAction;
+              }
+            }
+          } catch (err) {
+            console.error(`[SimLoop] AI autonomous failed for ${nation.id}:`, err.message);
+          }
+        }
+      }
+
+      // Fallback to rule-based if AI didn't produce an action
+      if (!action) {
+        action = pickAutonomousAction(nation, allIds, world);
+      }
+
       if (!action) continue;
+
+      // --- Duplicate event prevention ---
+      const last = lastNationAction[nation.id];
+      if (last && last.type === action.type && last.target === action.target && cycleCount - last.cycle <= 2) {
+        continue;
+      }
+      lastNationAction[nation.id] = { type: action.type, target: action.target, cycle: cycleCount };
+
+      // --- Intent generation (Fix 2): 35% chance AI decisions create intent ---
+      if (action.source === "ai" && Math.random() < 0.35) {
+        generateIntent(nation, action.type, action.target);
+      }
+
+      // --- Decay intents each action (Fix 2) ---
+      decayIntent(nation);
 
       // Apply the autonomous action through the same pipeline as user events
       const turn = world.config.turn;
@@ -262,6 +421,11 @@ async function runCycle() {
       // Memory distribution
       if (action.target) {
         distributeMemory(world, turn, nation.id, action.target, action.type, action.reason);
+        // Fix 3: Track experience on the target nation
+        const targetNation = world.nations.find((n) => n.id === action.target);
+        if (targetNation) {
+          updateExperience(targetNation, action.type);
+        }
       }
 
       // Apply resource cost (Phase 5)
@@ -294,6 +458,9 @@ async function runCycle() {
     if (statuses.includes("war")) world.config.phase = "war";
     else if (statuses.includes("tension")) world.config.phase = "tension";
     else world.config.phase = "peace";
+
+    // --- Fix 3: Evaluate personality shifts periodically ---
+    evaluatePersonalityShift(world, world.config.turn);
 
     // --- Phase 9: Validate state after every cycle ---
     validateWorldState(world);
@@ -337,6 +504,11 @@ function resetSimulationTime() {
   cycleCount = 0;
   const world = getWorld();
   world.config.time = initTime();
+  // Clear intent and experience for all nations on reset
+  for (const nation of world.nations) {
+    nation.intent = null;
+    nation.experience = { hostilityReceived: 0, cooperationReceived: 0 };
+  }
 }
 
 module.exports = { startSimulation, pauseSimulation, isSimulationRunning, resetSimulationTime, initTime };

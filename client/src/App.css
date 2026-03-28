@@ -137,6 +137,30 @@ body {
   font-size: inherit;
 }
 
+.world-event-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 1.5rem;
+  background: #0d1a2e;
+  border-bottom: 1px solid #1a2e4a;
+  font-size: 0.8rem;
+}
+
+.world-event-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.world-event-text {
+  color: #9ca3af;
+}
+
+.world-event-text strong {
+  color: #60a5fa;
+  margin-right: 0.35rem;
+}
+
 .app-main {
   flex: 1;
   display: flex;

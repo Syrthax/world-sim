@@ -87,6 +87,16 @@ function SidePanel({ selectedNation, worldState, turnSummary }) {
         >
           {nation.personality}
         </span>
+        {nation.experience && (nation.experience.hostilityReceived > 0 || nation.experience.cooperationReceived > 0) && (
+          <div style={{ display: 'flex', gap: '6px', fontSize: '0.65rem', marginTop: '4px' }}>
+            {nation.experience.hostilityReceived > 0 && (
+              <span style={{ color: '#f87171' }}>⚔ {nation.experience.hostilityReceived}</span>
+            )}
+            {nation.experience.cooperationReceived > 0 && (
+              <span style={{ color: '#34d399' }}>♦ {nation.experience.cooperationReceived}</span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Status + Resources */}
@@ -96,22 +106,73 @@ function SidePanel({ selectedNation, worldState, turnSummary }) {
           <span style={{ color: statusColor, fontWeight: 600, fontSize: '0.85rem', textTransform: 'capitalize' }}>
             ● {nation.status}
           </span>
-          <span style={{ color: '#6b7280', fontSize: '0.8rem' }}>
-            Resources: <strong style={{ color: '#9ca3af' }}>{nation.resources}</strong>
-          </span>
+        </div>
+        {/* Resource bar */}
+        <div style={{ marginTop: '0.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#6b7280', marginBottom: '3px' }}>
+            <span>Resources</span>
+            <span style={{ color: nation.resources < 30 ? '#f87171' : nation.resources < 60 ? '#fbbf24' : '#34d399', fontWeight: 600 }}>
+              {nation.resources}/120
+            </span>
+          </div>
+          <div style={{ height: '6px', background: '#1a2035', borderRadius: '3px', overflow: 'hidden' }}>
+            <div style={{
+              height: '100%',
+              width: `${Math.min(100, (nation.resources / 120) * 100)}%`,
+              background: nation.resources < 30 ? '#f87171' : nation.resources < 60 ? '#fbbf24' : '#34d399',
+              borderRadius: '3px',
+              transition: 'width 0.4s ease',
+            }} />
+          </div>
         </div>
       </section>
+
+      {/* Strategic Intent */}
+      {nation.intent && (
+        <section className="panel-section">
+          <h3 className="section-title">Strategic Intent</h3>
+          <div style={{ fontSize: '0.78rem', display: 'flex', gap: '6px', alignItems: 'center' }}>
+            <span style={{
+              padding: '2px 6px',
+              borderRadius: '4px',
+              fontSize: '0.7rem',
+              fontWeight: 600,
+              background: EVENT_TYPE_COLORS[nation.intent.type] ? `${EVENT_TYPE_COLORS[nation.intent.type]}22` : '#1f2937',
+              color: EVENT_TYPE_COLORS[nation.intent.type] ?? '#9ca3af',
+              border: `1px solid ${EVENT_TYPE_COLORS[nation.intent.type] ?? '#374151'}`,
+            }}>
+              {nation.intent.type}
+            </span>
+            {nation.intent.target && (
+              <>
+                <span style={{ color: '#6b7280' }}>→</span>
+                <span style={{ color: '#d1d5db' }}>
+                  {worldState?.nationMap?.[nation.intent.target]?.name ?? nation.intent.target}
+                </span>
+              </>
+            )}
+            <span style={{ color: '#6b7280', fontSize: '0.65rem', marginLeft: 'auto' }}>
+              {nation.intent.expiresIn}t left
+            </span>
+          </div>
+        </section>
+      )}
 
       {/* Alliances */}
       <section className="panel-section">
         <h3 className="section-title">Alliances</h3>
         {nation.alliances.length > 0 ? (
           <div className="alliance-list">
-            {nation.alliances.map(id => (
-              <span key={id} className="alliance-badge">
-                {worldState.nationMap[id]?.name ?? id}
-              </span>
-            ))}
+            {nation.alliances.map(a => {
+              const allyId = typeof a === 'string' ? a : a.id;
+              const strength = typeof a === 'string' ? 1 : (a.strength || 1);
+              return (
+                <span key={allyId} className="alliance-badge" title={`Strength ${strength}/3`}>
+                  {worldState.nationMap[allyId]?.name ?? allyId}
+                  {strength > 1 && <span style={{ marginLeft: '0.25rem', fontSize: '0.7rem', opacity: 0.7 }}>{'★'.repeat(strength)}</span>}
+                </span>
+              );
+            })}
           </div>
         ) : (
           <p className="no-data">No active alliances</p>
@@ -133,6 +194,32 @@ function SidePanel({ selectedNation, worldState, turnSummary }) {
             ))}
         </div>
       </section>
+
+      {/* Memory Patterns (Phase 6) */}
+      {nation.patterns && Object.keys(nation.patterns).length > 0 && (
+        <section className="panel-section">
+          <h3 className="section-title">Memory Patterns</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            {Object.entries(nation.patterns)
+              .sort((a, b) => (b[1].hostile + b[1].friendly) - (a[1].hostile + a[1].friendly))
+              .map(([otherId, p]) => {
+                const name = worldState.nationMap[otherId]?.name ?? otherId
+                const isHostile = p.hostile > p.friendly
+                const isFriendly = p.friendly > p.hostile
+                return (
+                  <div key={otherId} style={{ fontSize: '0.72rem', display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    <span style={{ color: isHostile ? '#f87171' : isFriendly ? '#34d399' : '#fbbf24', width: '10px', textAlign: 'center' }}>
+                      {isHostile ? '⚔' : isFriendly ? '♦' : '◆'}
+                    </span>
+                    <span style={{ color: '#9ca3af', flex: 1 }}>{name}</span>
+                    {p.hostile > 0 && <span style={{ color: '#f87171', fontSize: '0.68rem' }}>{p.hostile}× hostile</span>}
+                    {p.friendly > 0 && <span style={{ color: '#34d399', fontSize: '0.68rem' }}>{p.friendly}× friendly</span>}
+                  </div>
+                )
+              })}
+          </div>
+        </section>
+      )}
 
       {/* Memory Log */}
       {nation.memory && nation.memory.length > 0 && (
@@ -161,9 +248,22 @@ function SidePanel({ selectedNation, worldState, turnSummary }) {
           <ul className="event-list">
             {turnSummary.reactions.map((r, i) => {
               const color = EVENT_TYPE_COLORS[r.decision] ?? '#9ca3af'
+              const isAI = r.source === 'ai'
               return (
                 <li key={i} className="event-item" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '0.25rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{
+                      fontSize: '0.6rem',
+                      fontWeight: 700,
+                      padding: '1px 5px',
+                      borderRadius: '3px',
+                      background: isAI ? '#1e3a5f' : '#1f2937',
+                      color: isAI ? '#60a5fa' : '#6b7280',
+                      border: `1px solid ${isAI ? '#2563eb' : '#374151'}`,
+                      letterSpacing: '0.04em',
+                    }}>
+                      {isAI ? 'AI' : 'Rule'}
+                    </span>
                     <span className="event-dot" style={{ background: color }} />
                     <strong style={{ color }}>{r.nationName}</strong>
                     <span style={{ color: '#9ca3af' }}>→</span>

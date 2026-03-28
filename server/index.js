@@ -4,7 +4,7 @@ const cors = require("cors");
 const { initWorld, getWorld, resetWorld, getAllNationIds } = require("./engine/world");
 const { updateTrust } = require("./engine/trust");
 const { applyAllianceChanges } = require("./engine/alliances");
-const { distributeMemory } = require("./engine/memory");
+const { distributeMemory, recallPatterns } = require("./engine/memory");
 const { createEvent } = require("./models/event");
 const { VALID_ACTIONS, ACTIONS, ACTION_RESOURCE_COST } = require("./data/actions");
 const { fetchBrightDataEvent, clearBrightDataCache } = require("./data/bright-data");
@@ -26,9 +26,26 @@ initWorld();
 // Seed the time system
 getWorld().config.time = initTime();
 
-// GET /api/state — Return current world state
+// GET /api/state — Return current world state with computed patterns
 app.get("/api/state", (req, res) => {
-  res.json(getWorld());
+  const world = getWorld();
+  const allIds = getAllNationIds();
+  // Enrich each nation with computed patterns from memory (read-only)
+  const enriched = {
+    ...world,
+    nations: world.nations.map((n) => {
+      const patterns = {};
+      for (const otherId of allIds) {
+        if (otherId === n.id) continue;
+        const p = recallPatterns(n, otherId);
+        if (p.totalInteractions > 0) {
+          patterns[otherId] = { hostile: p.hostileCount, friendly: p.friendlyCount };
+        }
+      }
+      return { ...n, patterns };
+    }),
+  };
+  res.json(enriched);
 });
 
 // POST /api/reset — Reset to initial state

@@ -126,6 +126,36 @@ function validateWorldState(world) {
       nation.resources = 120;
       issues.push(`${nation.id}: resources exceeded cap — clamped to 120`);
     }
+
+    // --- Patterns: computed field — strip if leaked onto persistent state ---
+    if (nation.patterns !== undefined) {
+      delete nation.patterns;
+      issues.push(`${nation.id}: stripped leaked patterns field`);
+    }
+
+    // --- Intent: validate structure or null ---
+    if (nation.intent !== undefined && nation.intent !== null) {
+      if (typeof nation.intent !== "object" || !nation.intent.type || typeof nation.intent.expiresIn !== "number") {
+        nation.intent = null;
+        issues.push(`${nation.id}: invalid intent — reset to null`);
+      } else if (nation.intent.expiresIn <= 0) {
+        nation.intent = null;
+        issues.push(`${nation.id}: expired intent — cleared`);
+      }
+    }
+
+    // --- Experience: validate structure ---
+    if (!nation.experience || typeof nation.experience !== "object") {
+      nation.experience = { hostilityReceived: 0, cooperationReceived: 0 };
+      issues.push(`${nation.id}: missing experience — initialized`);
+    } else {
+      if (typeof nation.experience.hostilityReceived !== "number" || isNaN(nation.experience.hostilityReceived)) {
+        nation.experience.hostilityReceived = 0;
+      }
+      if (typeof nation.experience.cooperationReceived !== "number" || isNaN(nation.experience.cooperationReceived)) {
+        nation.experience.cooperationReceived = 0;
+      }
+    }
   }
 
   // --- Event log: cap to prevent unbounded growth ---

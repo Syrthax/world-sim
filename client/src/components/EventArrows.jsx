@@ -5,7 +5,14 @@ const EVENT_STYLES = {
   attack:   { color: '#ef4444', strokeWidth: 2.5, dash: undefined },
   sanction: { color: '#f97316', strokeWidth: 1.5, dash: '5 3' },
   alliance: { color: '#60a5fa', strokeWidth: 1.5, dash: undefined },
+  ally:     { color: '#60a5fa', strokeWidth: 1.5, dash: undefined },
+  trade:    { color: '#34d399', strokeWidth: 1.5, dash: '3 2' },
+  betray:   { color: '#a855f7', strokeWidth: 2.5, dash: undefined },
+  support:  { color: '#38bdf8', strokeWidth: 1.5, dash: '6 2' },
+  neutral:  { color: '#6b7280', strokeWidth: 1,   dash: '2 4' },
 }
+
+const ALL_TYPES = Object.keys(EVENT_STYLES)
 
 function shortenLine(x1, y1, x2, y2, amount = 24) {
   const dx = x2 - x1
@@ -30,7 +37,7 @@ function EventArrows({ events }) {
   return (
     <g className="event-arrows">
       <defs>
-        {['attack', 'sanction', 'alliance'].map(type => (
+        {ALL_TYPES.map(type => (
           <marker
             key={type}
             id={`arrowhead-${type}`}
@@ -50,7 +57,8 @@ function EventArrows({ events }) {
         const to   = NATION_CENTERS[evt.target]
         if (!from || !to) return null
 
-        const style  = EVENT_STYLES[evt.type] ?? EVENT_STYLES.alliance
+        const resolvedType = EVENT_STYLES[evt.type] ? evt.type : 'alliance'
+        const style  = EVENT_STYLES[resolvedType]
         const coords = shortenLine(from.x, from.y, to.x, to.y, 24)
         const midX   = (coords.x1 + coords.x2) / 2
         const midY   = (coords.y1 + coords.y2) / 2 - 12
@@ -65,7 +73,7 @@ function EventArrows({ events }) {
                 stroke={style.color}
                 strokeWidth={style.strokeWidth}
                 strokeDasharray={style.dash}
-                markerEnd={`url(#arrowhead-${evt.type})`}
+                markerEnd={`url(#arrowhead-${resolvedType})`}
               />
               <text
                 x={midX} y={midY}

@@ -89,6 +89,18 @@ function applyReactionEffects(world, nation, reaction, turn) {
 
     // Alliance changes for explicit ally/betray/attack reactions
     applyAllianceChanges(world, nation.id, target, decision);
+
+    // Experience tracking — target nation registers being acted upon
+    const targetNation = world.nations.find((n) => n.id === target);
+    if (targetNation && targetNation.experience) {
+      const hostileActions = ["attack", "sanction", "betray"];
+      const cooperativeActions = ["ally", "trade", "support"];
+      if (hostileActions.includes(decision)) {
+        targetNation.experience.hostilityReceived++;
+      } else if (cooperativeActions.includes(decision)) {
+        targetNation.experience.cooperationReceived++;
+      }
+    }
   }
 
   // Memory — the reacting nation remembers its own decision

@@ -13,7 +13,7 @@ function getRelationship(perspectiveId, nationId, worldState) {
   const map = worldState?.nationMap
   const perspective = map ? map[perspectiveId] : DUMMY_WORLD[perspectiveId]
   if (!perspective) return 'neutral'
-  if (perspective.alliances.includes(nationId)) return 'allied'
+  if (perspective.alliances.some(a => (typeof a === 'string' ? a : a.id) === nationId)) return 'allied'
   const trust = perspective.trust[nationId] ?? 0
   if (trust <= -15) return 'hostile'
   return 'neutral'
