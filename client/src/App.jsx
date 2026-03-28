@@ -56,6 +56,11 @@ function App() {
               <span className="world-event-text">
                 WORLD_EVENT: {worldState.config.worldEvent.summary}
               </span>
+              {worldState.config.worldEvent.source && (
+                <span className={`world-event-source world-event-source--${worldState.config.worldEvent.source === 'bright-data' ? 'live' : 'fallback'}`}>
+                  {worldState.config.worldEvent.source === 'bright-data' ? '🌐 LIVE DATA' : '📦 FALLBACK'}
+                </span>
+              )}
             </div>
           )}
 

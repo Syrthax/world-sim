@@ -17,9 +17,22 @@ function DebugConsole({ debugStats, turnSummary }) {
   const lastCall = debugStats.lastApiCallTime ?? null
   const hasApiKey = debugStats.hasApiKey ?? false
 
+  // Bright Data stats
+  const bdCalls = debugStats.totalBrightDataCalls ?? 0
+  const bdSuccesses = debugStats.totalBrightDataSuccesses ?? 0
+  const bdFailures = debugStats.totalBrightDataFailures ?? 0
+  const bdLastError = debugStats.lastBrightDataError ?? null
+  const bdLastCall = debugStats.lastBrightDataCallTime ?? null
+  const hasBdKey = debugStats.hasBrightDataKey ?? false
+  const bdTriggers = debugStats.totalTriggers ?? 0
+  const bdPolls = debugStats.totalPolls ?? 0
+  const bdPending = debugStats.pendingSnapshot ?? null
+  const bdCached = debugStats.cachedEventsCount ?? 0
+
   const totalDecisions = aiDecisions + fallbackDecisions + autoAI + autoFallback
   const aiRate = totalDecisions > 0 ? Math.round(((aiDecisions + autoAI) / totalDecisions) * 100) : 0
   const isAIWorking = aiCalls > 0 && aiSuccesses > 0
+  const isBDWorking = bdTriggers > 0
 
   const reactionSources = turnSummary?.reactions?.reduce((acc, r) => {
     acc[r.source] = (acc[r.source] || 0) + 1
@@ -30,6 +43,7 @@ function DebugConsole({ debugStats, turnSummary }) {
     <div className={`debug-console ${collapsed ? 'debug-console--collapsed' : ''}`}>
       <button className="debug-toggle" onClick={() => setCollapsed(c => !c)}>
         <span className={`debug-status-dot ${isAIWorking ? 'debug-dot--ok' : 'debug-dot--warn'}`} />
+        <span className={`debug-status-dot ${isBDWorking ? 'debug-dot--ok' : (hasBdKey ? 'debug-dot--warn' : 'debug-dot--err')}`} />
         {collapsed ? 'DEBUG' : 'HIDE'}
       </button>
 
@@ -73,6 +87,34 @@ function DebugConsole({ debugStats, turnSummary }) {
               <span>Auto AI/FB:</span>
               <span>{autoAI} / {autoFallback}</span>
             </div>
+          </div>
+
+          <div className="debug-section">
+            <div className="debug-label">BRIGHT_DATA</div>
+            <div className="debug-row">
+              <span>Key:</span>
+              <span className={hasBdKey ? 'debug-ok' : 'debug-err'}>{hasBdKey ? 'LOADED' : 'MISSING'}</span>
+            </div>
+            <div className="debug-row">
+              <span>Triggers:</span>
+              <span>{bdTriggers} | Polls: {bdPolls}</span>
+            </div>
+            <div className="debug-row">
+              <span>Live/FB:</span>
+              <span>{bdSuccesses}✓ {bdFailures}✗</span>
+            </div>
+            <div className="debug-row">
+              <span>Status:</span>
+              <span className={bdPending ? 'debug-warn' : (bdCached > 0 ? 'debug-ok' : '')}>
+                {bdPending ? 'SCRAPING...' : (bdCached > 0 ? `${bdCached} CACHED` : 'IDLE')}
+              </span>
+            </div>
+            {bdLastCall && (
+              <div className="debug-row">
+                <span>Last:</span>
+                <span>{new Date(bdLastCall).toLocaleTimeString()}</span>
+              </div>
+            )}
           </div>
 
           {turnSummary && (
