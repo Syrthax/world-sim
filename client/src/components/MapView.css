@@ -14,26 +14,31 @@
 }
 
 /* ── Nation hover + glow effects ── */
-.nation-region polygon {
+.nation-region path {
   transition: fill 0.25s ease, stroke 0.25s ease, filter 0.25s ease;
 }
 
-.nation-region:hover polygon {
+.nation-region:hover path {
   filter: brightness(1.4);
 }
 
-.nation-region.selected polygon,
-.nation-region.self polygon {
+.nation-region.selected path,
+.nation-region.self path {
   filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.4));
 }
 
-.nation-region.target polygon {
+.nation-region.target path {
   filter: drop-shadow(0 0 8px rgba(0, 255, 136, 0.4));
 }
 
-.nation-region.allied:hover polygon { fill: #153068; }
-.nation-region.hostile:hover polygon { fill: #4a1212; }
-.nation-region.neutral:hover polygon { fill: #1a2e45; stroke: #3a6a9a; }
+.nation-region.allied:hover path { fill: #153068; }
+.nation-region.hostile:hover path { fill: #4a1212; }
+.nation-region.neutral:hover path { fill: #1a2e45; stroke: #3a6a9a; }
+
+/* ── Inactive nations ── */
+.inactive-nations path {
+  transition: none;
+}
 
 /* ── HUD Overlay ── */
 .map-hud {

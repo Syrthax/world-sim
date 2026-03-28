@@ -1,4 +1,4 @@
-import { NATION_CENTERS } from '../data/worldData'
+import { NATION_CENTROIDS } from '../assets/europe-paths'
 import './EventArrows.css'
 
 const EVENT_STYLES = {
@@ -53,8 +53,8 @@ function EventArrows({ events }) {
       </defs>
 
       {events.map((evt, idx) => {
-        const from = NATION_CENTERS[evt.attacker]
-        const to   = NATION_CENTERS[evt.target]
+        const from = NATION_CENTROIDS[evt.attacker]
+        const to   = NATION_CENTROIDS[evt.target]
         if (!from || !to) return null
 
         const resolvedType = EVENT_STYLES[evt.type] ? evt.type : 'alliance'

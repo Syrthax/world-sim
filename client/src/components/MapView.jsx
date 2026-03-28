@@ -1,10 +1,18 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import NationRegion from './NationRegion'
 import EventArrows from './EventArrows'
-import { NATIONS, DUMMY_EVENTS, NATION_CENTERS } from '../data/worldData'
+import { DUMMY_EVENTS } from '../data/worldData'
+import { ACTIVE_NATIONS, INACTIVE_NATIONS, NATION_CENTROIDS, ACTIVE_NATION_IDS } from '../assets/europe-paths'
 import './MapView.css'
 
 const ARROW_LIFETIME_MS = 4000
+
+const RELATIONSHIP_COLORS = {
+  self:    { fill: '#2d1f00', stroke: '#f59e0b', width: 2.5 },
+  target:  { fill: '#002e1c', stroke: '#00ff88', width: 2.5 },
+  allied:  { fill: '#0d1f3d', stroke: '#2563eb', width: 1.5 },
+  hostile: { fill: '#2d0d0d', stroke: '#991b1b', width: 1.5 },
+  neutral: { fill: '#111d2b', stroke: '#1b3a5a', width: 1 },
+}
 
 function getRelationship(perspectiveId, nationId, worldState, targetId) {
   if (nationId === targetId && targetId !== perspectiveId) return 'target'
@@ -33,7 +41,7 @@ function MapView({ selectedNation, targetNation, onNationClick, worldState }) {
     liveLog.slice(-8).forEach((e, i) => {
       const key = `${e.turn}-${e.source}-${e.target}-${e.type}`
       if (seenEventsRef.current.has(key)) return
-      if (!e.source || !e.target || !NATION_CENTERS[e.source] || !NATION_CENTERS[e.target]) return
+      if (!e.source || !e.target || !NATION_CENTROIDS[e.source] || !NATION_CENTROIDS[e.target]) return
       seenEventsRef.current.add(key)
       newArrows.push({
         id: key,
@@ -75,18 +83,18 @@ function MapView({ selectedNation, targetNation, onNationClick, worldState }) {
     const svg = e.currentTarget
     const rect = svg.getBoundingClientRect()
     const x = ((e.clientX - rect.left) / rect.width) * 800
-    const y = ((e.clientY - rect.top) / rect.height) * 550
-    const lat = (72 - (y / 550) * 37).toFixed(4)
+    const y = ((e.clientY - rect.top) / rect.height) * 600
+    const lat = (72 - (y / 600) * 37).toFixed(4)
     const lng = (-10 + (x / 800) * 55).toFixed(4)
     setMouseCoords({ lat, lng })
   }, [])
 
-  const baseW = 800, baseH = 550
+  const baseW = 800, baseH = 600
   const w = baseW / zoom, h = baseH / zoom
   const vbX = (baseW - w) / 2, vbY = (baseH - h) / 2
 
-  const selectedCenter = selectedNation ? NATION_CENTERS[selectedNation] : null
-  const targetCenter = targetNation && targetNation !== selectedNation ? NATION_CENTERS[targetNation] : null
+  const selectedCenter = selectedNation ? NATION_CENTROIDS[selectedNation] : null
+  const targetCenter = targetNation && targetNation !== selectedNation ? NATION_CENTROIDS[targetNation] : null
 
   return (
     <div className="map-view">
@@ -99,25 +107,77 @@ function MapView({ selectedNation, targetNation, onNationClick, worldState }) {
         <rect x={vbX} y={vbY} width={w} height={h} fill="#080c12" />
 
         {/* Grid lines */}
-        <g stroke="#0e1a28" strokeWidth="0.5" opacity="0.4">
+        <g stroke="#0e1a28" strokeWidth="0.5" opacity="0.3">
           {[100, 200, 300, 400, 500, 600, 700].map(x => (
-            <line key={`v${x}`} x1={x} y1="0" x2={x} y2="550" />
+            <line key={`v${x}`} x1={x} y1="0" x2={x} y2="600" />
           ))}
           {[100, 200, 300, 400, 500].map(y => (
             <line key={`h${y}`} x1="0" y1={y} x2="800" y2={y} />
           ))}
         </g>
 
-        {NATIONS.map(nation => (
-          <NationRegion
-            key={nation.id}
-            nation={nation}
-            isSelected={selectedNation === nation.id}
-            isTarget={targetNation === nation.id}
-            relationship={getRelationship(selectedNation, nation.id, worldState, targetNation)}
-            onClick={onNationClick}
-          />
-        ))}
+        {/* Inactive countries (greyed out, non-interactive) */}
+        <g className="inactive-nations">
+          {INACTIVE_NATIONS.map(c => (
+            <path
+              key={c.id}
+              d={c.d}
+              fill="#1a1f28"
+              stroke="#252b35"
+              strokeWidth="0.5"
+              opacity="0.35"
+              pointerEvents="none"
+            />
+          ))}
+        </g>
+
+        {/* Active nations (interactive) */}
+        {ACTIVE_NATIONS.map(nation => {
+          const isSelected = selectedNation === nation.id
+          const isTarget = targetNation === nation.id
+          const rel = getRelationship(selectedNation, nation.id, worldState, targetNation)
+          const colors = isSelected
+            ? RELATIONSHIP_COLORS.self
+            : isTarget
+            ? RELATIONSHIP_COLORS.target
+            : RELATIONSHIP_COLORS[rel] ?? RELATIONSHIP_COLORS.neutral
+
+          const center = NATION_CENTROIDS[nation.id]
+
+          return (
+            <g
+              key={nation.id}
+              className={`nation-region ${isSelected ? 'selected' : isTarget ? 'target' : rel}`}
+              onClick={() => onNationClick(nation.id)}
+              style={{ cursor: 'pointer' }}
+            >
+              <path
+                d={nation.d}
+                fill={colors.fill}
+                stroke={colors.stroke}
+                strokeWidth={colors.width}
+                strokeLinejoin="round"
+                fillRule="evenodd"
+              />
+              {center && (
+                <text
+                  x={center.x}
+                  y={center.y}
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  fill={isSelected ? '#f59e0b' : isTarget ? '#00ff88' : '#5a6a7a'}
+                  fontSize="10"
+                  fontWeight="600"
+                  fontFamily="'Share Tech Mono', 'Courier New', monospace"
+                  letterSpacing="0.1em"
+                  pointerEvents="none"
+                >
+                  {nation.label}
+                </text>
+              )}
+            </g>
+          )
+        })}
 
         <EventArrows events={arrowEvents} />
 
